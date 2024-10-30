@@ -22,6 +22,7 @@
 
 #include "decode/vulkan_virtual_swapchain.h"
 
+#include "decode/vulkan_direct_allocator.h"
 #include "decode/vulkan_resource_allocator.h"
 #include "decode/decoder_util.h"
 
@@ -105,8 +106,8 @@ void VulkanVirtualSwapchain::CleanSwapchainResourceData(const VulkanDeviceInfo* 
 
         for (const VulkanImageInfo& image_info : swapchain_info->image_infos)
         {
-            allocator->DestroyImageDirect(image_info.handle, nullptr, image_info.allocator_data);
-            allocator->FreeMemoryDirect(image_info.memory, nullptr, image_info.memory_allocator_data);
+            allocator->GetDirectAllocator().DestroyImage(image_info.handle, nullptr, image_info.allocator_data);
+            allocator->GetDirectAllocator().FreeMemory(image_info.memory, nullptr, image_info.memory_allocator_data);
         }
 
         // Delete the virtual swapchain-specific swapchain resource data
@@ -115,8 +116,10 @@ void VulkanVirtualSwapchain::CleanSwapchainResourceData(const VulkanDeviceInfo* 
             auto& swapchain_resources = swapchain_resources_[swapchain];
             for (const VirtualImage& image_info : swapchain_resources->virtual_swapchain_images)
             {
-                allocator->DestroyImageDirect(image_info.image, nullptr, image_info.resource_allocator_data);
-                allocator->FreeMemoryDirect(image_info.memory, nullptr, image_info.memory_allocator_data);
+                allocator->GetDirectAllocator().DestroyImage(
+                    image_info.image, nullptr, image_info.resource_allocator_data);
+                allocator->GetDirectAllocator().FreeMemory(
+                    image_info.memory, nullptr, image_info.memory_allocator_data);
             }
 
             for (auto& copy_cmd_data : swapchain_resources->copy_cmd_data)
@@ -1048,8 +1051,8 @@ VkResult VulkanVirtualSwapchain::CreateVirtualSwapchainImage(const VulkanDeviceI
     VulkanResourceAllocator* allocator = device_info->allocator.get();
     assert(allocator != nullptr);
 
-    VkResult result =
-        allocator->CreateImageDirect(&image_create_info, nullptr, &image.image, &image.resource_allocator_data);
+    VkResult result = allocator->GetDirectAllocator().CreateImage(
+        &image_create_info, nullptr, &image.image, &image.resource_allocator_data);
 
     if (result == VK_SUCCESS)
     {
@@ -1084,12 +1087,13 @@ VkResult VulkanVirtualSwapchain::CreateVirtualSwapchainImage(const VulkanDeviceI
         alloc_info.memoryTypeIndex      = memory_type_index;
         alloc_info.allocationSize       = memory_reqs.size;
 
-        result = allocator->AllocateMemoryDirect(&alloc_info, nullptr, &image.memory, &image.memory_allocator_data);
+        result = allocator->GetDirectAllocator().AllocateMemory(
+            &alloc_info, nullptr, &image.memory, &image.memory_allocator_data);
 
         if (result == VK_SUCCESS)
         {
             VkMemoryPropertyFlags flags;
-            result = allocator->BindImageMemoryDirect(
+            result = allocator->GetDirectAllocator().BindImageMemory(
                 image.image, image.memory, 0, image.resource_allocator_data, image.memory_allocator_data, &flags);
         }
 
@@ -1097,11 +1101,11 @@ VkResult VulkanVirtualSwapchain::CreateVirtualSwapchainImage(const VulkanDeviceI
         {
             if (image.memory != VK_NULL_HANDLE)
             {
-                allocator->FreeMemoryDirect(image.memory, nullptr, image.memory_allocator_data);
+                allocator->GetDirectAllocator().FreeMemory(image.memory, nullptr, image.memory_allocator_data);
                 image.memory = VK_NULL_HANDLE;
             }
 
-            allocator->DestroyImageDirect(image.image, nullptr, image.resource_allocator_data);
+            allocator->GetDirectAllocator().DestroyImage(image.image, nullptr, image.resource_allocator_data);
             image.image = VK_NULL_HANDLE;
         }
     }

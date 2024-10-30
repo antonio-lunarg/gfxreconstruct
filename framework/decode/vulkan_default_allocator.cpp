@@ -64,12 +64,13 @@ VkResult VulkanDefaultAllocator::Initialize(uint32_t                            
     functions_         = functions;
     memory_properties_ = replay_memory_properties;
 
-    return VK_SUCCESS;
+    return direct_allocator_.Initialize(*this);
 }
 
 void VulkanDefaultAllocator::Destroy()
 {
     device_ = VK_NULL_HANDLE;
+    direct_allocator_.Destroy();
 }
 
 VkResult VulkanDefaultAllocator::CreateBuffer(const VkBufferCreateInfo*    create_info,

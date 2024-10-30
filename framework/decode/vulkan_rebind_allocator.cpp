@@ -87,7 +87,13 @@ VkResult VulkanRebindAllocator::Initialize(uint32_t                             
                                            const VkPhysicalDeviceMemoryProperties& replay_memory_properties,
                                            const Functions&                        functions)
 {
-    VkResult result = VK_ERROR_INITIALIZATION_FAILED;
+    VkResult result = direct_allocator_.Initialize(*this);
+    if (result != VK_SUCCESS)
+    {
+        return result;
+    }
+
+    result = VK_ERROR_INITIALIZATION_FAILED;
 
     if ((capture_memory_properties.memoryTypeCount == 0) || (replay_memory_properties.memoryTypeCount == 0))
     {
@@ -225,6 +231,8 @@ void VulkanRebindAllocator::Destroy()
     }
 
     device_ = VK_NULL_HANDLE;
+
+    direct_allocator_.Destroy();
 }
 
 VkResult VulkanRebindAllocator::CreateBuffer(const VkBufferCreateInfo*    create_info,

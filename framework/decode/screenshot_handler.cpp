@@ -21,6 +21,7 @@
 */
 
 #include "decode/screenshot_handler.h"
+#include "decode/vulkan_direct_allocator.h"
 #include "util/image_writer.h"
 #include "util/logging.h"
 #include "util/platform.h"
@@ -366,7 +367,7 @@ void ScreenshotHandler::WriteImage(const std::string&                      filen
                 if (result == VK_SUCCESS)
                 {
                     void* data = nullptr;
-                    result     = allocator->MapResourceMemoryDirect(
+                    result     = allocator->GetDirectAllocator().MapResourceMemory(
                         copy_resource.buffer_size, 0, &data, copy_resource.buffer_data);
 
                     if (result == VK_SUCCESS)
@@ -380,7 +381,7 @@ void ScreenshotHandler::WriteImage(const std::string&                      filen
                             invalidate_range.offset              = 0;
                             invalidate_range.size                = copy_resource.buffer_size;
 
-                            allocator->InvalidateMappedMemoryRangesDirect(
+                            allocator->GetDirectAllocator().InvalidateMappedMemoryRanges(
                                 1, &invalidate_range, &copy_resource.buffer_memory_data);
                         }
 
@@ -391,7 +392,7 @@ void ScreenshotHandler::WriteImage(const std::string&                      filen
                                        copy_resource.buffer_size,
                                        data);
 
-                        allocator->UnmapResourceMemoryDirect(copy_resource.buffer_data);
+                        allocator->GetDirectAllocator().UnmapResourceMemory(copy_resource.buffer_data);
                     }
                 }
                 else
@@ -563,8 +564,8 @@ VkResult ScreenshotHandler::CreateCopyResource(VkDevice                         
     create_info.queueFamilyIndexCount = 0;
     create_info.pQueueFamilyIndices   = nullptr;
 
-    VkResult result =
-        allocator->CreateBufferDirect(&create_info, nullptr, &copy_resource->buffer, &copy_resource->buffer_data);
+    VkResult result = allocator->GetDirectAllocator().CreateBuffer(
+        &create_info, nullptr, &copy_resource->buffer, &copy_resource->buffer_data);
 
     if (result == VK_SUCCESS)
     {
@@ -592,18 +593,18 @@ VkResult ScreenshotHandler::CreateCopyResource(VkDevice                         
         allocate_info.allocationSize       = memory_requirements.size;
         allocate_info.memoryTypeIndex      = memory_type_index;
 
-        result = allocator->AllocateMemoryDirect(
+        result = allocator->GetDirectAllocator().AllocateMemory(
             &allocate_info, nullptr, &copy_resource->buffer_memory, &copy_resource->buffer_memory_data);
     }
 
     if (result == VK_SUCCESS)
     {
-        result = allocator->BindBufferMemoryDirect(copy_resource->buffer,
-                                                   copy_resource->buffer_memory,
-                                                   0,
-                                                   copy_resource->buffer_data,
-                                                   copy_resource->buffer_memory_data,
-                                                   &copy_resource->memory_property_flags);
+        result = allocator->GetDirectAllocator().BindBufferMemory(copy_resource->buffer,
+                                                                  copy_resource->buffer_memory,
+                                                                  0,
+                                                                  copy_resource->buffer_data,
+                                                                  copy_resource->buffer_memory_data,
+                                                                  &copy_resource->memory_property_flags);
     }
 
     if ((result == VK_SUCCESS) &&
@@ -627,7 +628,7 @@ VkResult ScreenshotHandler::CreateCopyResource(VkDevice                         
         image_create_info.pQueueFamilyIndices   = nullptr;
         image_create_info.initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
 
-        result = allocator->CreateImageDirect(
+        result = allocator->GetDirectAllocator().CreateImage(
             &image_create_info, nullptr, &copy_resource->convert_image, &copy_resource->convert_image_data);
 
         if (result == VK_SUCCESS)
@@ -645,22 +646,22 @@ VkResult ScreenshotHandler::CreateCopyResource(VkDevice                         
             allocate_info.allocationSize       = memory_requirements.size;
             allocate_info.memoryTypeIndex      = memory_type_index;
 
-            result = allocator->AllocateMemoryDirect(&allocate_info,
-                                                     nullptr,
-                                                     &copy_resource->convert_image_memory,
-                                                     &copy_resource->convert_image_memory_data);
+            result = allocator->GetDirectAllocator().AllocateMemory(&allocate_info,
+                                                                    nullptr,
+                                                                    &copy_resource->convert_image_memory,
+                                                                    &copy_resource->convert_image_memory_data);
         }
 
         if (result == VK_SUCCESS)
         {
             VkMemoryPropertyFlags image_memory_property_flags = 0;
 
-            result = allocator->BindImageMemoryDirect(copy_resource->convert_image,
-                                                      copy_resource->convert_image_memory,
-                                                      0,
-                                                      copy_resource->convert_image_data,
-                                                      copy_resource->convert_image_memory_data,
-                                                      &image_memory_property_flags);
+            result = allocator->GetDirectAllocator().BindImageMemory(copy_resource->convert_image,
+                                                                     copy_resource->convert_image_memory,
+                                                                     0,
+                                                                     copy_resource->convert_image_data,
+                                                                     copy_resource->convert_image_memory_data,
+                                                                     &image_memory_property_flags);
         }
     }
 
@@ -686,14 +687,15 @@ void ScreenshotHandler::DestroyCopyResource(VkDevice device, CopyResource* copy_
     {
         if (copy_resource->buffer != VK_NULL_HANDLE)
         {
-            copy_resource->allocator->DestroyBufferDirect(copy_resource->buffer, nullptr, copy_resource->buffer_data);
+            copy_resource->allocator->GetDirectAllocator().DestroyBuffer(
+                copy_resource->buffer, nullptr, copy_resource->buffer_data);
             copy_resource->buffer      = VK_NULL_HANDLE;
             copy_resource->buffer_data = 0;
         }
 
         if (copy_resource->buffer_memory != VK_NULL_HANDLE)
         {
-            copy_resource->allocator->FreeMemoryDirect(
+            copy_resource->allocator->GetDirectAllocator().FreeMemory(
                 copy_resource->buffer_memory, nullptr, copy_resource->buffer_memory_data);
             copy_resource->buffer_memory         = VK_NULL_HANDLE;
             copy_resource->buffer_memory_data    = 0;
@@ -702,7 +704,7 @@ void ScreenshotHandler::DestroyCopyResource(VkDevice device, CopyResource* copy_
 
         if (copy_resource->convert_image != VK_NULL_HANDLE)
         {
-            copy_resource->allocator->DestroyImageDirect(
+            copy_resource->allocator->GetDirectAllocator().DestroyImage(
                 copy_resource->convert_image, nullptr, copy_resource->convert_image_data);
             copy_resource->convert_image      = VK_NULL_HANDLE;
             copy_resource->convert_image_data = 0;
@@ -710,7 +712,7 @@ void ScreenshotHandler::DestroyCopyResource(VkDevice device, CopyResource* copy_
 
         if (copy_resource->convert_image_memory != VK_NULL_HANDLE)
         {
-            copy_resource->allocator->FreeMemoryDirect(
+            copy_resource->allocator->GetDirectAllocator().FreeMemory(
                 copy_resource->convert_image_memory, nullptr, copy_resource->convert_image_memory_data);
             copy_resource->convert_image_memory      = VK_NULL_HANDLE;
             copy_resource->convert_image_memory_data = 0;

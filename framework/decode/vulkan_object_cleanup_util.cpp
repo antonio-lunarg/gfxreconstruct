@@ -22,6 +22,7 @@
 
 #include "decode/vulkan_object_cleanup_util.h"
 
+#include "decode/vulkan_direct_allocator.h"
 #include "decode/vulkan_resource_allocator.h"
 #include "format/format.h"
 #include "util/logging.h"
@@ -644,8 +645,9 @@ void FreeAllLiveObjects(CommonObjectInfoTable*                                  
 
                 for (const VulkanImageInfo& image_info : object_info->image_infos)
                 {
-                    allocator->DestroyImageDirect(image_info.handle, nullptr, image_info.allocator_data);
-                    allocator->FreeMemoryDirect(image_info.memory, nullptr, image_info.memory_allocator_data);
+                    allocator->GetDirectAllocator().DestroyImage(image_info.handle, nullptr, image_info.allocator_data);
+                    allocator->GetDirectAllocator().FreeMemory(
+                        image_info.memory, nullptr, image_info.memory_allocator_data);
                 }
             }
         });

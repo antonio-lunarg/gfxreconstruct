@@ -22,6 +22,7 @@
 ** DEALINGS IN THE SOFTWARE.
 */
 
+#include "decode/vulkan_direct_allocator.h"
 #include "decode/vulkan_replay_consumer_base.h"
 #include "decode/custom_vulkan_struct_handle_mappers.h"
 #include "decode/descriptor_update_template_decoder.h"
@@ -6272,8 +6273,8 @@ void VulkanReplayConsumerBase::OverrideDestroySwapchainKHR(
 
         for (const VulkanImageInfo& image_info : swapchain_info->image_infos)
         {
-            allocator->DestroyImageDirect(image_info.handle, nullptr, image_info.allocator_data);
-            allocator->FreeMemoryDirect(image_info.memory, nullptr, image_info.memory_allocator_data);
+            allocator->GetDirectAllocator().DestroyImage(image_info.handle, nullptr, image_info.allocator_data);
+            allocator->GetDirectAllocator().FreeMemory(image_info.memory, nullptr, image_info.memory_allocator_data);
         }
     }
     else
@@ -9024,7 +9025,8 @@ VkResult VulkanReplayConsumerBase::CreateSwapchainImage(const VulkanDeviceInfo* 
     assert(allocator != nullptr);
 
     VulkanResourceAllocator::ResourceData allocator_image_data;
-    VkResult result = allocator->CreateImageDirect(image_create_info, nullptr, image, &allocator_image_data);
+    VkResult                              result =
+        allocator->GetDirectAllocator().CreateImage(image_create_info, nullptr, image, &allocator_image_data);
 
     if (result == VK_SUCCESS)
     {
@@ -9062,12 +9064,12 @@ VkResult VulkanReplayConsumerBase::CreateSwapchainImage(const VulkanDeviceInfo* 
         alloc_info.memoryTypeIndex      = memory_type_index;
         alloc_info.allocationSize       = memory_reqs.size;
 
-        result = allocator->AllocateMemoryDirect(&alloc_info, nullptr, &memory, &allocator_memory_data);
+        result = allocator->GetDirectAllocator().AllocateMemory(&alloc_info, nullptr, &memory, &allocator_memory_data);
 
         if (result == VK_SUCCESS)
         {
             VkMemoryPropertyFlags flags;
-            result = allocator->BindImageMemoryDirect(
+            result = allocator->GetDirectAllocator().BindImageMemory(
                 *image, memory, 0, allocator_image_data, allocator_memory_data, &flags);
         }
 
@@ -9082,7 +9084,7 @@ VkResult VulkanReplayConsumerBase::CreateSwapchainImage(const VulkanDeviceInfo* 
         }
         else
         {
-            allocator->DestroyImageDirect(*image, nullptr, allocator_image_data);
+            allocator->GetDirectAllocator().DestroyImage(*image, nullptr, allocator_image_data);
         }
     }
     return result;
