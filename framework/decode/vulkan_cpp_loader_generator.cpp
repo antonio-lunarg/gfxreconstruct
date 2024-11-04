@@ -56,6 +56,9 @@ void VulkanCppLoaderGenerator::WriteOutLoaderGenerator(const std::string& outDir
         fprintf(pfn_hdr_file, "%s\n", sLoaderHeader);
         switch (platform)
         {
+            default:
+                GFXRECON_LOG_FATAL("Failed to write out loader generator: Invalid platform (%d)", platform);
+                break;
             case GfxToCppPlatform::PLATFORM_ANDROID:
                 fprintf(pfn_src_file, "#define VK_USE_PLATFORM_ANDROID_KHR\n");
                 break;

@@ -85,6 +85,9 @@ void VulkanCppConsumerBase::WriteMainHeader()
 {
     switch (platform_)
     {
+        default:
+            GFXRECON_LOG_FATAL("Failed to write main header: Invalid platform (%d)", platform_);
+            break;
         case GfxToCppPlatform::PLATFORM_ANDROID:
             fprintf(main_file_, "%s", sAndroidOutputDrawFunctionStart);
             break;
@@ -101,6 +104,9 @@ void VulkanCppConsumerBase::WriteMainFooter()
 {
     switch (platform_)
     {
+        default:
+            GFXRECON_LOG_FATAL("Failed to write main footer: Invalid platform (%d)", platform_);
+            break;
         case GfxToCppPlatform::PLATFORM_ANDROID:
             fprintf(main_file_, "%s", sAndroidOutputDrawFunctionEnd);
             break;
@@ -122,6 +128,9 @@ bool VulkanCppConsumerBase::WriteGlobalHeaderFile()
     {
         switch (platform_)
         {
+            default:
+                GFXRECON_LOG_FATAL("Failed to write global header file: Invalid platform (%d)", platform_);
+                break;
             case GfxToCppPlatform::PLATFORM_ANDROID:
                 fprintf(header_file,
                         "%s%s%s%s",
@@ -179,6 +188,9 @@ void VulkanCppConsumerBase::PrintOutCMakeFile()
     {
         switch (platform_)
         {
+            default:
+                GFXRECON_LOG_FATAL("Failed to print out CMake file: Unknown platform (%d)", platform_);
+                break;
             case GfxToCppPlatform::PLATFORM_ANDROID:
                 // Nothing to do here
                 break;
@@ -244,6 +256,9 @@ void VulkanCppConsumerBase::PrintOutGlobalVar()
 
         switch (platform_)
         {
+            default:
+                GFXRECON_LOG_FATAL("Failed to print out global var: Invalid platform (%d)", platform_);
+                break;
             case GfxToCppPlatform::PLATFORM_ANDROID:
                 fputs(sAndroidOutputGlobalSource, global_file);
                 break;
@@ -1652,6 +1667,9 @@ void VulkanCppConsumerBase::GenerateSurfaceCreation(GfxToCppPlatform        plat
 
     switch (platform_)
     {
+        default:
+            GFXRECON_LOG_FATAL("Failed to generate surface creation: Invalid platform (%d)", platform_);
+            break;
         case GfxToCppPlatform::PLATFORM_ANDROID:
         {
             VkAndroidSurfaceCreateInfoKHR         android_struct_info  = {};
