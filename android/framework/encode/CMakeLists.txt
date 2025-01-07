@@ -8,6 +8,8 @@ target_sources(gfxrecon_encode
                    ${GFXRECON_SOURCE_DIR}/framework/encode/capture_manager.cpp               
                    ${GFXRECON_SOURCE_DIR}/framework/encode/capture_settings.h
                    ${GFXRECON_SOURCE_DIR}/framework/encode/capture_settings.cpp
+                   ${GFXRECON_SOURCE_DIR}/framework/encode/command_writer.h
+                   ${GFXRECON_SOURCE_DIR}/framework/encode/command_writer.cpp
                    ${GFXRECON_SOURCE_DIR}/framework/encode/custom_vulkan_encoder_commands.h
                    ${GFXRECON_SOURCE_DIR}/framework/encode/custom_vulkan_api_call_encoders.h
                    ${GFXRECON_SOURCE_DIR}/framework/encode/custom_vulkan_api_call_encoders.cpp
@@ -19,6 +21,7 @@ target_sources(gfxrecon_encode
                    ${GFXRECON_SOURCE_DIR}/framework/encode/custom_vulkan_struct_handle_wrappers.cpp
                    ${GFXRECON_SOURCE_DIR}/framework/encode/descriptor_update_template_info.h
                    ${GFXRECON_SOURCE_DIR}/framework/encode/handle_unwrap_memory.h
+                   ${GFXRECON_SOURCE_DIR}/framework/encode/output_stream_writer.h
                    ${GFXRECON_SOURCE_DIR}/framework/encode/parameter_buffer.h
                    ${GFXRECON_SOURCE_DIR}/framework/encode/parameter_encoder.h
                    ${GFXRECON_SOURCE_DIR}/framework/encode/scoped_destroy_lock.h

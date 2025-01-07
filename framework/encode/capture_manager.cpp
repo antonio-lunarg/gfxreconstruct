@@ -1,6 +1,6 @@
 /*
 ** Copyright (c) 2018-2022 Valve Corporation
-** Copyright (c) 2018-2022 LunarG, Inc.
+** Copyright (c) 2018-2025 LunarG, Inc.
 ** Copyright (c) 2019-2023 Advanced Micro Devices, Inc. All rights reserved.
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
@@ -55,45 +55,12 @@ GFXRECON_BEGIN_NAMESPACE(encode)
 const uint32_t kFirstFrame           = 1;
 const size_t   kFileStreamBufferSize = 256 * 1024;
 
-std::mutex                                     CommonCaptureManager::ThreadData::count_lock_;
-format::ThreadId                               CommonCaptureManager::ThreadData::thread_count_ = 0;
-std::unordered_map<uint64_t, format::ThreadId> CommonCaptureManager::ThreadData::id_map_;
-
-CommonCaptureManager*                                          CommonCaptureManager::singleton_;
-std::mutex                                                     CommonCaptureManager::instance_lock_;
-thread_local std::unique_ptr<CommonCaptureManager::ThreadData> CommonCaptureManager::thread_data_;
-CommonCaptureManager::ApiCallMutexT                            CommonCaptureManager::api_call_mutex_;
+CommonCaptureManager*                          CommonCaptureManager::singleton_;
+std::mutex                                     CommonCaptureManager::instance_lock_;
+thread_local std::unique_ptr<util::ThreadData> CommonCaptureManager::thread_data_;
+CommonCaptureManager::ApiCallMutexT            CommonCaptureManager::api_call_mutex_;
 
 std::atomic<format::HandleId> CommonCaptureManager::unique_id_counter_{ format::kNullHandleId };
-
-CommonCaptureManager::ThreadData::ThreadData() :
-    thread_id_(GetThreadId()), object_id_(format::kNullHandleId), call_id_(format::ApiCallId::ApiCall_Unknown),
-    block_index_(0)
-{
-    parameter_buffer_  = std::make_unique<encode::ParameterBuffer>();
-    parameter_encoder_ = std::make_unique<ParameterEncoder>(parameter_buffer_.get());
-}
-
-format::ThreadId CommonCaptureManager::ThreadData::GetThreadId()
-{
-    format::ThreadId id  = 0;
-    uint64_t         tid = util::platform::GetCurrentThreadId();
-
-    // Using a uint64_t sequence number associated with the thread ID.
-    std::lock_guard<std::mutex> lock(count_lock_);
-    auto                        entry = id_map_.find(tid);
-    if (entry != id_map_.end())
-    {
-        id = entry->second;
-    }
-    else
-    {
-        id = ++thread_count_;
-        id_map_.insert(std::make_pair(tid, id));
-    }
-
-    return id;
-}
 
 CommonCaptureManager::CommonCaptureManager() :
     force_file_flush_(false), timestamp_filename_(true),
@@ -491,14 +458,19 @@ bool CommonCaptureManager::Initialize(format::ApiFamilyId                   api_
         capture_mode_ = kModeDisabled;
     }
 
+    if (success)
+    {
+        command_writer_ = std::make_unique<CommandWriter>(this, compressor_.get());
+    }
+
     return success;
 }
 
-CommonCaptureManager::ThreadData* CommonCaptureManager::GetThreadData()
+util::ThreadData* CommonCaptureManager::GetThreadData()
 {
     if (!thread_data_)
     {
-        thread_data_ = std::make_unique<ThreadData>();
+        thread_data_ = std::make_unique<util::ThreadData>();
     }
     return thread_data_.get();
 }
@@ -834,15 +806,15 @@ void CommonCaptureManager::CheckStartCaptureForTrackMode(format::ApiFamilyId    
     {
         capture_mode_ |= kModeWrite;
 
-        auto thread_data = GetThreadData();
-        assert(thread_data != nullptr);
+        auto* thread_data = GetThreadData();
+        GFXRECON_ASSERT(thread_data != nullptr);
 
         std::unique_ptr<util::FileOutputStream> asset_file_stream = CreateAssetFile();
         if (asset_file_stream)
         {
             for (auto& manager : api_capture_managers_)
             {
-                manager.first->WriteAssets(asset_file_stream.get(), &asset_file_name_, thread_data->thread_id_);
+                manager.first->WriteAssets(asset_file_stream.get(), &asset_file_name_, thread_data);
             }
         }
 
@@ -1226,22 +1198,22 @@ void CommonCaptureManager::ActivateTrimming(std::shared_lock<ApiCallMutexT>& cur
 
         capture_mode_ |= kModeWrite;
 
-        auto thread_data = GetThreadData();
-        assert(thread_data != nullptr);
+        auto* thread_data = GetThreadData();
+        GFXRECON_ASSERT(thread_data != nullptr);
         if (use_asset_file_)
         {
             std::unique_ptr<util::FileOutputStream> asset_file_stream = CreateAssetFile();
             for (auto& manager : api_capture_managers_)
             {
                 manager.first->WriteTrackedStateWithAssetFile(
-                    file_stream_.get(), thread_data->thread_id_, asset_file_stream.get(), &asset_file_name_);
+                    file_stream_.get(), thread_data, asset_file_stream.get(), &asset_file_name_);
             }
         }
         else
         {
             for (auto& manager : api_capture_managers_)
             {
-                manager.first->WriteTrackedState(file_stream_.get(), thread_data->thread_id_);
+                manager.first->WriteTrackedState(file_stream_.get(), thread_data);
             }
         }
     }
@@ -1505,69 +1477,6 @@ void CommonCaptureManager::WriteEndResourceInitCmd(format::ApiFamilyId api_famil
     init_cmd.device_id = device_id;
 
     WriteToFile(&init_cmd, sizeof(init_cmd));
-}
-
-void CommonCaptureManager::WriteInitBufferCmd(format::ApiFamilyId api_family,
-                                              format::HandleId    device_id,
-                                              format::HandleId    buffer_id,
-                                              uint64_t            offset,
-                                              uint64_t            size,
-                                              const void*         data)
-{
-    if ((capture_mode_ & kModeWrite) != kModeWrite)
-    {
-        return;
-    }
-
-    GFXRECON_CHECK_CONVERSION_DATA_LOSS(size_t, size);
-
-    format::InitBufferCommandHeader init_cmd;
-    size_t                          header_size       = sizeof(format::InitBufferCommandHeader);
-    const uint8_t*                  uncompressed_data = (static_cast<const uint8_t*>(data) + offset);
-    size_t                          uncompressed_size = static_cast<size_t>(size);
-
-    auto thread_data = GetThreadData();
-    assert(thread_data != nullptr);
-
-    init_cmd.meta_header.block_header.type = format::BlockType::kMetaDataBlock;
-    init_cmd.meta_header.meta_data_id = format::MakeMetaDataId(api_family, format::MetaDataType::kInitBufferCommand);
-    init_cmd.thread_id                = thread_data->thread_id_;
-    init_cmd.device_id                = device_id;
-    init_cmd.buffer_id                = buffer_id;
-    init_cmd.data_size                = size;
-
-    bool not_compressed = true;
-
-    if (compressor_ != nullptr)
-    {
-        size_t compressed_size =
-            compressor_->Compress(uncompressed_size, uncompressed_data, &thread_data->compressed_buffer_, header_size);
-
-        if ((compressed_size > 0) && (compressed_size < uncompressed_size))
-        {
-            not_compressed = false;
-
-            // We don't have a special header for compressed fill commands because the header always includes
-            // the uncompressed size, so we just change the type to indicate the data is compressed.
-            init_cmd.meta_header.block_header.type = format::BlockType::kCompressedMetaDataBlock;
-
-            // Calculate size of packet with uncompressed data size.
-            init_cmd.meta_header.block_header.size = format::GetMetaDataBlockBaseSize(init_cmd) + compressed_size;
-
-            // Copy header to beginning of compressed_buffer_
-            util::platform::MemoryCopy(thread_data->compressed_buffer_.data(), header_size, &init_cmd, header_size);
-
-            WriteToFile(thread_data->compressed_buffer_.data(), header_size + compressed_size);
-        }
-    }
-
-    if (not_compressed)
-    {
-        // Calculate size of packet with compressed data size.
-        init_cmd.meta_header.block_header.size = format::GetMetaDataBlockBaseSize(init_cmd) + uncompressed_size;
-
-        CombineAndWriteToFile({ { &init_cmd, header_size }, { uncompressed_data, uncompressed_size } });
-    }
 }
 
 void CommonCaptureManager::WriteCreateHeapAllocationCmd(format::ApiFamilyId api_family,
