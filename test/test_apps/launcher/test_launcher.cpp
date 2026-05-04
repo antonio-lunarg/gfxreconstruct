@@ -34,6 +34,7 @@
 #include <triangle_app.h>
 #include <triangle_extra_device_app.h>
 #include <deep_pnext_chain_app.h>
+#include <queue_submit_serialization_app.h>
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
 #include <ahb_app.h>
 #endif
@@ -75,6 +76,7 @@ static const char* kAppNames[] = {
     "triangle",
     "triangle-extra-device",
     "deep-pnext-chain",
+    "queue-submit-serialization",
 #ifdef __linux__
     "external-memory-fd-export",
     "external-memory-fd-import",
@@ -152,6 +154,14 @@ CreateTestApp(std::unique_ptr<gfxrecon::application::Application> application,
     else if (app_name == "triangle-extra-device")
     {
         app = std::make_unique<gfxrecon::test_app::triangle_extra_device::App>();
+    }
+    else if (app_name == "queue-submit-serialization")
+    {
+        app = std::make_unique<gfxrecon::test_app::qss::App>();
+    }
+    else if (app_name == "deep-pnext-chain")
+    {
+        app = std::make_unique<gfxrecon::test_app::deep_pnext_chain::App>();
     }
     else if (app_name == "host-image-copy")
     {

@@ -1,0 +1,52 @@
+/*
+** Copyright (c) 2024-2025 LunarG, Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and associated documentation files (the "Software"),
+** to deal in the Software without restriction, including without limitation
+** the rights to use, copy, modify, merge, publish, distribute, sublicense,
+** and/or sell copies of the Software, and to permit persons to whom the
+** Software is furnished to do so, subject to the following conditions:
+**
+** The above copyright notice and this permission notice shall be included in
+** all copies or substantial portions of the Software.
+**
+** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+** FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+** DEALINGS IN THE SOFTWARE.
+*/
+
+// Compute shader which writes Red.
+
+#version 450
+
+layout (local_size_x = 1, local_size_y = 1) in;
+
+layout (binding = 0, rgba8) uniform writeonly image2D img;
+
+uint hash_step(uint x)
+{
+    x ^= x >> 16;
+    x *= 0x7feb352du;
+    x ^= x >> 15;
+    x *= 0x846ca68bu;
+    x ^= x >> 16;
+    return x;
+}
+
+void main()
+{
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    uint x = uint(coord.x) * 1664525u + uint(coord.y) * 1013904223u;
+    for (uint i = 0; i < 100000; ++i)
+    {
+        x = hash_step(x + i);
+    }
+    // Use x in the final result so the compiler cannot trivially remove the loop.
+    float tiny = float(x & 1u) / 255.0;
+    imageStore(img, coord, vec4(1.0, tiny, tiny, 1.0)); // red-ish
+}
