@@ -890,14 +890,14 @@ void VulkanReplayConsumer::Process_vkEndCommandBuffer(
     VkResult                                    returnValue,
     format::HandleId                            commandBuffer)
 {
-    VkCommandBuffer in_commandBuffer = MapHandle<VulkanCommandBufferInfo>(commandBuffer, &CommonObjectInfoTable::GetVkCommandBufferInfo);
+    auto in_commandBuffer = GetObjectInfoTable().GetVkCommandBufferInfo(commandBuffer);
 
-    VkResult replay_result = GetDeviceTable(in_commandBuffer)->EndCommandBuffer(in_commandBuffer);
+    VkResult replay_result = OverrideEndCommandBuffer(GetDeviceTable(in_commandBuffer->handle)->EndCommandBuffer, returnValue, in_commandBuffer);
     CheckResult("vkEndCommandBuffer", returnValue, replay_result, call_info);
 
     if (options_.dumping_resources)
     {
-        resource_dumper_->Process_vkEndCommandBuffer(call_info, GetDeviceTable(in_commandBuffer)->EndCommandBuffer, returnValue, in_commandBuffer);
+        resource_dumper_->Process_vkEndCommandBuffer(call_info, GetDeviceTable(in_commandBuffer->handle)->EndCommandBuffer, returnValue, in_commandBuffer->handle);
     }
 }
 

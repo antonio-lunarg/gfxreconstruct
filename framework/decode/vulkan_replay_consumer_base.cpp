@@ -10129,6 +10129,13 @@ VkResult VulkanReplayConsumerBase::OverrideBeginCommandBuffer(
     return res;
 }
 
+VkResult VulkanReplayConsumerBase::OverrideEndCommandBuffer(PFN_vkEndCommandBuffer   func,
+                                                            VkResult                 original_result,
+                                                            VulkanCommandBufferInfo* command_buffer_info)
+{
+    return func(command_buffer_info->handle);
+}
+
 VkResult VulkanReplayConsumerBase::OverrideResetCommandBuffer(PFN_vkResetCommandBuffer  func,
                                                               VkResult                  original_result,
                                                               VulkanCommandBufferInfo*  command_buffer_info,

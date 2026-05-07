@@ -1327,6 +1327,10 @@ class VulkanReplayConsumerBase : public VulkanConsumer
                                         VulkanCommandBufferInfo*                                command_buffer_info,
                                         StructPointerDecoder<Decoded_VkCommandBufferBeginInfo>* begin_info_decoder);
 
+    VkResult OverrideEndCommandBuffer(PFN_vkEndCommandBuffer   func,
+                                      VkResult                 original_result,
+                                      VulkanCommandBufferInfo* command_buffer_info);
+
     VkResult OverrideResetCommandBuffer(PFN_vkResetCommandBuffer  func,
                                         VkResult                  original_result,
                                         VulkanCommandBufferInfo*  command_buffer_info,
