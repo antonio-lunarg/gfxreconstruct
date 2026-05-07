@@ -192,6 +192,9 @@ struct VulkanReplayOptions : public ReplayOptions
     /// Milliseconds to wait before starting to replay each frame.
     uint32_t wait_before_frame{ 0 };
 
+    /// Execute each render pass in a separate command buffer and queue submit.
+    bool isolate_render_passes{ false };
+
     void MaybeWaitBeforeFirstSubmit() const;
     void MaybeWaitBeforeFrame() const;
 };

@@ -637,6 +637,7 @@ gfxrecon-replay         [-h | --help] [--version] [--cpu-mask <binary-mask>] [--
                         [--wait-before-first-submit MILLISECONDS]
                         [--idle-before-submit] [--serialize-render-passes]
                         [--wait-before-frame MILLISECONDS]
+                        [--isolate-render-passes]
 
 
 Required arguments:
@@ -890,6 +891,8 @@ Optional arguments:
               run before each frame replay. Default is 0 (disabled).
   --wait-before-frame <milliseconds>
               Specify a wait time in milliseconds before starting replay of each frame. Default is 0 (disabled).
+  --isolate-render-passes
+              Isolate render passes by executing each render pass in a separate command buffer and queue submit.
 ```
 
 ### Frame Warm-Up

@@ -152,6 +152,7 @@ def CreateReplayParser():
     parser.add_argument('--frame-warm-up-spirv', metavar='DEVICE_FILE', help='Specify a user-provided SPIR-V compute shader for the warm-up pass. The shader must use entry point main and set 0, binding 0 as a storage buffer. Warm-up runs before the first submit of each replayed frame only when this option and a non-zero --frame-warm-up-load are both provided. (forwarded to replay tool)')
     parser.add_argument('--frame-warm-up-load', metavar='LOAD', default=0, help='Specify workload scale factor for a compute dispatch warm-up pass run before each frame replay. Default is 0 (disabled). (forwarded to replay tool)')
     parser.add_argument('--wait-before-frame', metavar='MILLISECONDS', default=0, help='Wait for the specified amount of milliseconds before starting to replay each frame. Default is 0 (no wait). (forwarded to replay tool)')
+    parser.add_argument('--isolate-render-passes', action='store_true', default=False, help='Isolate render passes by executing each render pass in a separate command buffer and queue submit. (forwarded to replay tool)')
 
     return parser
 
@@ -360,6 +361,10 @@ def MakeExtrasString(args):
     if args.wait_before_frame:
         arg_list.append('--wait-before-frame')
         arg_list.append('{}'.format(args.wait_before_frame))
+    
+    if args.isolate_render_passes:
+        arg_list.append('--isolate-render-passes')
+        arg_list.append('{}'.format(args.isolate_render_passes))
 
     if args.file:
         arg_list.append(args.file)

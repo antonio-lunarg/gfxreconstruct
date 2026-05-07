@@ -797,6 +797,7 @@ usage: gfxrecon.py replay [-h] [-p LOCAL_FILE] [--version] [--log-level LEVEL]
                           [--idle-before-submit]
                           [--serialize-render-passes]
                           [--wait-before-frame MILLISECONDS]
+                          [--isolate-render-passes]
                           [file]
 
 Launch the replay tool.
@@ -1027,6 +1028,8 @@ options:
                         Wait for the specified amount of milliseconds before starting
                         to replay each frame. Default is 0 (no wait). (forwarded to
                         replay tool)
+  --isolate-render-passes
+                        Isolate render passes by executing each render pass in a separate command buffer and queue submit. (forwarded to replay tool)
 ```
 
 The command will force-stop an active replay process before starting the replay

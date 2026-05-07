@@ -154,6 +154,7 @@ const char kWaitBeforeFirstSubmit[]               = "--wait-before-first-submit"
 const char kIdleBeforeSubmit[]                    = "--idle-before-submit";
 const char kSerializeRenderPasses[]               = "--serialize-render-passes";
 const char kWaitBeforeFrame[]                     = "--wait-before-frame";
+const char kIsolateRenderPasses[]                 = "--isolate-render-passes";
 
 const char kScreenshotIgnoreFrameBoundaryArgument[] = "--screenshot-ignore-FrameBoundaryANDROID";
 
@@ -1388,6 +1389,7 @@ GetVulkanReplayOptions(const gfxrecon::util::ArgumentParser&           arg_parse
 
     GetFrameWarmUpOptions(arg_parser, replay_options.frame_warm_up_spirv_path, replay_options.frame_warm_up_load);
     GetWaitBeforeFrame(arg_parser, replay_options.wait_before_frame);
+    replay_options.isolate_render_passes = arg_parser.IsOptionSet(kIsolateRenderPasses);
 
     return replay_options;
 }
