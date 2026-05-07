@@ -89,6 +89,9 @@ class StructPointerDecoder : public PointerDecoderBase
 
     const std::span<typename T::struct_type> GetSpan() const { return std::span(GetPointer(), GetLength()); }
 
+    /// Returns a copy of the decoded data in a std::vector.
+    std::vector<typename T::struct_type> IntoVector() const { return std::vector(GetPointer(), GetPointer() + GetLength()); }
+
     size_t GetOutputLength() const { return output_len_; }
 
     typename T::struct_type* GetOutputPointer() { return output_data_; }

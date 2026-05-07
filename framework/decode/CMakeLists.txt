@@ -232,6 +232,8 @@ target_sources(gfxrecon_decode
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_referenced_block_consumer_base.cpp
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_remap_allocator.h
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_remap_allocator.cpp
+                    ${CMAKE_CURRENT_LIST_DIR}/vulkan_render_pass_isolator.h
+                    ${CMAKE_CURRENT_LIST_DIR}/vulkan_render_pass_isolator.cpp
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_replay_consumer_base.h
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_replay_consumer_base.cpp
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_replay_options.h

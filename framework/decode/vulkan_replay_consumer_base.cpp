@@ -199,8 +199,7 @@ static uint32_t GetHardwareBufferFormatBpp(uint32_t format)
 
 VulkanReplayConsumerBase::VulkanReplayConsumerBase(std::shared_ptr<application::Application> application,
                                                    const VulkanReplayOptions&                options) :
-    options_(options),
-    loader_handle_(nullptr), get_instance_proc_addr_(nullptr), create_instance_proc_(nullptr),
+    options_(options), loader_handle_(nullptr), get_instance_proc_addr_(nullptr), create_instance_proc_(nullptr),
     application_(application), loading_trim_state_(false), replaying_trimmed_capture_(false), fps_info_(nullptr),
     have_imported_semaphores_(false), omitted_pipeline_cache_data_(false),
     save_pipeline_caches_to_file(!options.save_pipeline_cache_filename.empty()),
@@ -4286,9 +4285,9 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit(PFN_vkQueueSubmit        
 
     assert((queue_info != nullptr) && (pSubmits != nullptr));
 
-    VkResult            result       = VK_SUCCESS;
-    const VkSubmitInfo* submit_infos = pSubmits->GetPointer();
-    assert(submitCount == 0 || submit_infos != nullptr);
+    VkResult                  result       = VK_SUCCESS;
+    std::vector<VkSubmitInfo> submit_infos = pSubmits->IntoVector();
+    GFXRECON_ASSERT(submitCount == 0 || !submit_infos.empty());
     auto    submit_info_data = pSubmits->GetMetaStructPointer();
     VkFence fence            = VK_NULL_HANDLE;
 
@@ -4343,6 +4342,11 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit(PFN_vkQueueSubmit        
         }
     }
 
+    if (options_.isolate_render_passes)
+    {
+        GetRenderPassIsolator(device_info).QueueSubmit(pSubmits->GetSpan());
+    }
+
     executor.InjectBefore(std::move(plan), pSubmits->GetSpan());
 
     // Only attempt to filter imported semaphores if we know at least one has been imported.
@@ -4350,7 +4354,7 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit(PFN_vkQueueSubmit        
     // tracked.
     if ((!have_imported_semaphores_) && (options_.surface_index == -1) && (!options_.dumping_resources))
     {
-        result = func(queue_info->handle, submitCount, submit_infos, fence);
+        result = func(queue_info->handle, submitCount, submit_infos.data(), fence);
     }
     else
     {
@@ -4383,7 +4387,7 @@ VkResult VulkanReplayConsumerBase::OverrideQueueSubmit(PFN_vkQueueSubmit        
 
         if (altered_submits.empty() && !options_.dumping_resources)
         {
-            result = func(queue_info->handle, submitCount, submit_infos, fence);
+            result = func(queue_info->handle, submitCount, submit_infos.data(), fence);
         }
         else
         {
@@ -8590,14 +8594,14 @@ VulkanReplayConsumerBase::OverrideQueuePresentKHR(PFN_vkQueuePresentKHR         
 
                     uint32_t replay_index = 0;
                     result                = swapchain_->AcquireNextImageKHR(original_result,
-                                                             device_table->AcquireNextImageKHR,
-                                                             swapchain_info->device_info,
-                                                             swapchain_info,
-                                                             std::numeric_limits<uint64_t>::max(),
-                                                             VK_NULL_HANDLE,
-                                                             acquire_fence.fence,
-                                                             capture_image_index,
-                                                             &replay_index);
+                                                                            device_table->AcquireNextImageKHR,
+                                                                            swapchain_info->device_info,
+                                                                            swapchain_info,
+                                                                            std::numeric_limits<uint64_t>::max(),
+                                                                            VK_NULL_HANDLE,
+                                                                            acquire_fence.fence,
+                                                                            capture_image_index,
+                                                                            &replay_index);
                     GFXRECON_ASSERT((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR));
 
                     result = device_table->WaitForFences(
@@ -8738,14 +8742,14 @@ VulkanReplayConsumerBase::OverrideQueuePresentKHR(PFN_vkQueuePresentKHR         
 
                     uint32_t replay_index = 0;
                     result                = swapchain_->AcquireNextImageKHR(original_result,
-                                                             device_table->AcquireNextImageKHR,
-                                                             swapchain_info->device_info,
-                                                             swapchain_info,
-                                                             std::numeric_limits<uint64_t>::max(),
-                                                             VK_NULL_HANDLE,
-                                                             acquire_fence.fence,
-                                                             capture_image_index,
-                                                             &replay_index);
+                                                                            device_table->AcquireNextImageKHR,
+                                                                            swapchain_info->device_info,
+                                                                            swapchain_info,
+                                                                            std::numeric_limits<uint64_t>::max(),
+                                                                            VK_NULL_HANDLE,
+                                                                            acquire_fence.fence,
+                                                                            capture_image_index,
+                                                                            &replay_index);
                     GFXRECON_ASSERT((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR));
 
                     result = device_table->WaitForFences(
@@ -9611,7 +9615,7 @@ VkResult VulkanReplayConsumerBase::OverrideCreateRayTracingPipelinesKHR(
 
             uint32_t group_info_count = in_pCreateInfos[create_info_i].groupCount;
             bool     has_data         = (device_info->shader_group_handles.find(pipeline_capture_id) !=
-                             device_info->shader_group_handles.end());
+                                         device_info->shader_group_handles.end());
 
             if (has_data)
             {
@@ -10133,6 +10137,11 @@ VkResult VulkanReplayConsumerBase::OverrideEndCommandBuffer(PFN_vkEndCommandBuff
                                                             VkResult                 original_result,
                                                             VulkanCommandBufferInfo* command_buffer_info)
 {
+    if (options_.isolate_render_passes)
+    {
+        render_pass_isolator_.EndCommandBuffer(command_buffer_info);
+    }
+
     return func(command_buffer_info->handle);
 }
 
@@ -10462,6 +10471,11 @@ void VulkanReplayConsumerBase::OverrideCmdEndRenderPass(PFN_vkCmdEndRenderPass  
     GFXRECON_ASSERT(command_buffer_info != nullptr);
     command_buffer_info->in_rendering_scope = false;
     func(command_buffer_info->handle);
+
+    if (options_.isolate_render_passes)
+    {
+        render_pass_isolator_.EndRenderPass(GetDeviceTable(), command_buffer_info);
+    }
 }
 
 void VulkanReplayConsumerBase::OverrideCmdEndRenderPass2(
@@ -10472,6 +10486,11 @@ void VulkanReplayConsumerBase::OverrideCmdEndRenderPass2(
     GFXRECON_ASSERT(command_buffer_info != nullptr);
     command_buffer_info->in_rendering_scope = false;
     func(command_buffer_info->handle, pSubpassEndInfo->GetPointer());
+
+    if (options_.isolate_render_passes)
+    {
+        render_pass_isolator_.EndRenderPass(GetDeviceTable(), command_buffer_info);
+    }
 }
 
 void VulkanReplayConsumerBase::OverrideCmdBeginRendering(
@@ -10493,6 +10512,11 @@ void VulkanReplayConsumerBase::OverrideCmdEndRendering(PFN_vkCmdEndRendering    
     GFXRECON_ASSERT(command_buffer_info != nullptr);
     command_buffer_info->in_rendering_scope = false;
     func(command_buffer_info->handle);
+
+    if (options_.isolate_render_passes)
+    {
+        render_pass_isolator_.EndRenderPass(GetDeviceTable(), command_buffer_info);
+    }
 }
 
 void VulkanReplayConsumerBase::OverrideCmdTraceRaysKHR(
@@ -11522,6 +11546,25 @@ VulkanFrameWarmUp& VulkanReplayConsumerBase::GetDeviceFrameWarmUp(const VulkanDe
                                                                                   *object_info_table_,
                                                                                   options_.frame_warm_up_spirv_path,
                                                                                   options_.frame_warm_up_load) });
+        GFXRECON_ASSERT(success);
+        return new_it->second;
+    }
+    return it->second;
+}
+
+VulkanRenderPassIsolator& VulkanReplayConsumerBase::GetDeviceRenderPassIsolator(const VulkanDeviceInfo* device_info)
+{
+    GFXRECON_ASSERT(device_info != nullptr);
+
+    auto it = device_render_pass_isolators_.find(device_info);
+    if (it == device_render_pass_isolators_.end())
+    {
+        auto* device_table = GetDeviceTable(device_info->handle);
+        GFXRECON_ASSERT(device_table != nullptr);
+        GFXRECON_ASSERT(object_info_table_ != nullptr);
+
+        auto [new_it, success] = device_render_pass_isolators_.insert(
+            { device_info, VulkanRenderPassIsolator(*device_info, *device_table, *object_info_table_) });
         GFXRECON_ASSERT(success);
         return new_it->second;
     }
@@ -12926,8 +12969,8 @@ bool VulkanReplayConsumerBase::CheckPipelineCacheUUID(const VulkanDeviceInfo*   
             // compare pipelineCacheUUID for device and blob
             auto* cache_header = reinterpret_cast<const VkPipelineCacheHeaderVersionOne*>(create_info->pInitialData);
             uuid_match         = memcmp(cache_header->pipelineCacheUUID,
-                                physical_device_info->replay_device_info->properties->pipelineCacheUUID,
-                                VK_UUID_SIZE) == 0;
+                                        physical_device_info->replay_device_info->properties->pipelineCacheUUID,
+                                        VK_UUID_SIZE) == 0;
         }
         return uuid_match;
     }
