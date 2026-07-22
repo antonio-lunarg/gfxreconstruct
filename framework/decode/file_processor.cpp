@@ -295,7 +295,7 @@ void FileProcessor::DecrementRemainingCommands()
 }
 
 template <typename ProcessPolicy>
-FileProcessor::ProcessBlockState FileProcessor::ProcessBlocks(ProcessPolicy& policy)
+ProcessBlockState FileProcessor::ProcessBlocks(ProcessPolicy& policy)
 {
     BlockBuffer       block_buffer;
     ProcessBlockState process_state = ProcessBlockState::kContinue;
@@ -425,9 +425,9 @@ bool FileProcessor::ReadBytes(void* buffer, size_t buffer_size)
     return false;
 }
 
-template file_processor::ProcessBlockState
+template ProcessBlockState
 FileProcessor::ProcessBlocks<file_processor::PreloadProcessPolicy>(file_processor::PreloadProcessPolicy& policy);
-template file_processor::ProcessBlockState
+template ProcessBlockState
 FileProcessor::ProcessBlocks<file_processor::AsyncProcessPolicy>(file_processor::AsyncProcessPolicy& policy);
 
 void FileProcessor::HandleReplayResult(const ProcessBlocksResult& result, const file_processor::BlockIterator& iterator)
@@ -748,7 +748,7 @@ void FileProcessor::PrintBlockInfo() const
     }
 }
 
-FileProcessor::ProcessBlockState FileProcessor::HandleBlockEof(const char* operation, bool report_frame_and_block)
+ProcessBlockState FileProcessor::HandleBlockEof(const char* operation, bool report_frame_and_block)
 {
 
     ProcessBlockState state = ProcessBlockState::kEndProcessing;

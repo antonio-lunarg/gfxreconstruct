@@ -26,6 +26,7 @@
 #include "format/format.h"
 #include "decode/block_batch.h"
 #include "decode/block_parser.h"
+#include "decode/block_state.h"
 #include "util/defines.h"
 #include "util/logging.h"
 #include "util/thread_safe_queue.h"
@@ -46,18 +47,6 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 class FileProcessor;
 
 GFXRECON_BEGIN_NAMESPACE(file_processor)
-
-// ProcessBlocks specific status.
-enum class ProcessBlockState : int32_t
-{
-    // Negative values indicate terminal states. Do not call ProcessBlocks again after receiving these.
-    //
-    // Returned when ProcessBlocks ...
-    kFrameBoundary = 1,  // encountered a frame boundary
-    kContinue      = 0,  // never returned by ProcessBlocks. Denotes placeholder/noop ProcessBlocksResult.
-    kEndProcessing = -1, // completed processing (!ContinueDecoding or clean EOF)
-    kError         = -2, // encountered an error
-};
 
 // Stores block processing state at return of ProcessBlocks in async or preload mode
 using FrameCount  = uint64_t;

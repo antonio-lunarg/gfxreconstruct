@@ -53,7 +53,6 @@ class AsyncProcessor
     using FrameCount        = file_processor::FrameCount;
     using FrameNumber       = file_processor::FrameNumber;
     using FrameRange        = file_processor::FrameRange;
-    using ProcessBlockState = file_processor::ProcessBlockState;
 
     constexpr static FrameNumber kMaxFrameNumber = std::numeric_limits<FrameNumber>::max();
     constexpr static BatchCount  kMaxBatchCount  = std::numeric_limits<BatchCount>::max();

@@ -43,6 +43,7 @@ target_sources(gfxrecon_decode
                     ${CMAKE_CURRENT_LIST_DIR}/block_buffer.cpp
                     ${CMAKE_CURRENT_LIST_DIR}/block_parser.h
                     ${CMAKE_CURRENT_LIST_DIR}/block_parser.cpp
+                    ${CMAKE_CURRENT_LIST_DIR}/block_stage.h
                     ${CMAKE_CURRENT_LIST_DIR}/common_consumer_base.h
                     ${CMAKE_CURRENT_LIST_DIR}/common_handle_mapping_util.h
                     ${CMAKE_CURRENT_LIST_DIR}/common_object_info_table.h

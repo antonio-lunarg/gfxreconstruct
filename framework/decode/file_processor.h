@@ -30,6 +30,7 @@
 #include "decode/api_decoder.h"
 #include "decode/api_payload.h"
 #include "decode/block_parser.h"
+#include "decode/block_state.h"
 #include "decode/file_processor_types.h"
 #include "util/clock_cache.h"
 #include "util/compressor.h"
@@ -69,7 +70,6 @@ class FileProcessor
     using FrameNumber         = file_processor::FrameNumber;
     using FrameCount          = file_processor::FrameCount;
     using FrameRange          = file_processor::FrameRange;
-    using ProcessBlockState   = file_processor::ProcessBlockState;
     using ProcessBlocksResult = file_processor::ProcessBlocksResult;
     using ProcessVisitor      = file_processor::ProcessVisitor;
 
@@ -369,9 +369,9 @@ class FileProcessor
     FrameNumber                     quit_before_frame_{ 0 };
 };
 
-extern template file_processor::ProcessBlockState
+extern template ProcessBlockState
 FileProcessor::ProcessBlocks<file_processor::PreloadProcessPolicy>(file_processor::PreloadProcessPolicy& policy);
-extern template file_processor::ProcessBlockState
+extern template ProcessBlockState
 FileProcessor::ProcessBlocks<file_processor::AsyncProcessPolicy>(file_processor::AsyncProcessPolicy& policy);
 
 GFXRECON_END_NAMESPACE(decode)
