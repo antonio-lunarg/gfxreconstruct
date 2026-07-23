@@ -58,6 +58,34 @@ FileProcessor::DispatchVisitor& FileProcessor::GetDispatchVisitor()
     return *dispatch_visitor_;
 }
 
+ProcessBlockState FileProcessor::DirectDispatch(ParsedBlock& block)
+{
+    DispatchVisitor& dispatch_visitor = GetDispatchVisitor();
+    dispatch_visitor.SetBlockIndex(block.GetBlockIndex());
+    return std::visit(dispatch_visitor, block.GetArgs());
+}
+
+ProcessBlockState FileProcessor::DirectDispatchStage::Emit(ParsedBlock& block)
+{
+    return file_processor_.DirectDispatch(block);
+}
+
+ProcessBlockState FileProcessor::DispatchParsedBlock(ParsedBlock& block)
+{
+    if (block_stage_pipeline_.has_value())
+    {
+        return block_stage_pipeline_->ProcessBlock(block);
+    }
+    return DirectDispatch(block);
+}
+
+void FileProcessor::SetBlockStagePipeline(BlockStagePipeline pipeline)
+{
+    block_stage_pipeline_      = std::move(pipeline);
+    auto direct_dispatch_stage = std::make_unique<DirectDispatchStage>(*this);
+    block_stage_pipeline_->AddStage(std::move(direct_dispatch_stage));
+}
+
 void FileProcessor::WaitDecodersIdle()
 {
     for (auto decoder : decoders_)
@@ -127,7 +155,7 @@ bool FileProcessor::Initialize(const std::string& filename)
         else
         {
             dispatch_error_state_ = kErrorOpeningFile;
-            success      = false;
+            success               = false;
         }
     }
 
@@ -268,7 +296,7 @@ bool FileProcessor::ProcessFileHeader()
                     GFXRECON_LOG_ERROR("Failed to initialize file compression module (type = %u); replay of "
                                        "compressed data will not be possible",
                                        enabled_options_.compression_type);
-                    success      = false;
+                    success               = false;
                     dispatch_error_state_ = kErrorUnsupportedCompressionType;
                 }
             }
@@ -510,8 +538,9 @@ file_processor::BlockIterator FileProcessor::ReplayOneFrame(BlockIterator begin,
         if (ContinueBlockProcessing<file_processor::ContinueProcessingPolicy::DecoderOnly>(
                 dispatch_block_index_)) // Requires the dispatch_block_index_ to be updated
         {
-            dispatch_visitor.SetBlockIndex(dispatch_block_index_);
-            state = std::visit(dispatch_visitor, block.GetArgs());
+            state = DispatchParsedBlock(block);
+            // dispatch_visitor.SetBlockIndex(dispatch_block_index_);
+            // state = std::visit(dispatch_visitor, block.GetArgs());
         }
         else
         {
@@ -785,7 +814,7 @@ ProcessBlockState FileProcessor::HandleBlockEof(const char* operation, bool repo
         }
 
         process_error_state_ = kErrorReadingBlockHeader;
-        state        = ProcessBlockState::kError;
+        state                = ProcessBlockState::kError;
     }
     else
     {

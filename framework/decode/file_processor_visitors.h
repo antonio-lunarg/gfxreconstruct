@@ -253,8 +253,8 @@ class SynchronousProcessPolicy
     }
     ProcessBlockState Dispatch(uint64_t block_index, ParsedBlock& block)
     {
-        dispatch_visitor_.SetBlockIndex(block_index);
-        return std::visit(dispatch_visitor_, block.GetArgs());
+        GFXRECON_ASSERT(block.GetBlockIndex() == block_index);
+        return file_processor_.DispatchParsedBlock(block);
     }
 
   private:

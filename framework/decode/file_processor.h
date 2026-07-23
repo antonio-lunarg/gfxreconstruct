@@ -30,6 +30,7 @@
 #include "decode/api_decoder.h"
 #include "decode/api_payload.h"
 #include "decode/block_parser.h"
+#include "decode/block_stage_pipeline.h"
 #include "decode/block_state.h"
 #include "decode/file_processor_types.h"
 #include "util/clock_cache.h"
@@ -44,6 +45,7 @@
 #include <deque>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits> // ParsedBlock
 #include <utility>
@@ -182,7 +184,9 @@ class FileProcessor
     void ProcessStateEndMarkerFrameState(const StateEndMarkerArgs& state_end);
     void ProcessAnnotation(const AnnotationArgs& annotation);
 
-    DispatchVisitor& GetDispatchVisitor();
+    void SetBlockStagePipeline(BlockStagePipeline pipeline);
+
+    ProcessBlockState DispatchParsedBlock(ParsedBlock& block);
 
   protected:
     using BlockProcessor = std::function<bool()>;
@@ -289,6 +293,8 @@ class FileProcessor
         return *block_parser_;
     }
 
+    DispatchVisitor& GetDispatchVisitor();
+
   private:
     bool CheckAllDecodersComplete(uint64_t block_index) const;
     bool ProcessFileHeader();
@@ -370,7 +376,23 @@ class FileProcessor
     FrameRange                      preload_frame_range_{ 0, 0 };
     FrameNumber                     quit_before_frame_{ 0 };
 
-    std::unique_ptr<DispatchVisitor> dispatch_visitor_{ nullptr };
+    /// Dispatch primitive: block -> persistent visitor -> decoders.
+    ProcessBlockState DirectDispatch(ParsedBlock& block);
+
+    /// Adapts the BlockStage interface the pipeline speaks to the dispatch
+    /// primitive. Installed as the pipeline's terminal sink.
+    class DirectDispatchStage : public BlockStage
+    {
+      public:
+        explicit DirectDispatchStage(FileProcessor& file_processor) : file_processor_(file_processor) {}
+        ProcessBlockState Emit(ParsedBlock& block) override;
+
+      private:
+        FileProcessor& file_processor_;
+    };
+
+    std::unique_ptr<DispatchVisitor>  dispatch_visitor_{ nullptr };
+    std::optional<BlockStagePipeline> block_stage_pipeline_{ std::nullopt };
 };
 
 extern template ProcessBlockState

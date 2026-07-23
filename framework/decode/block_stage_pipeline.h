@@ -20,40 +20,30 @@
 ** DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef GFXRECON_DECODE_BLOCK_STAGE_H
-#define GFXRECON_DECODE_BLOCK_STAGE_H
+#ifndef GFXRECON_DECODE_BLOCK_STAGE_PIPELINE_H
+#define GFXRECON_DECODE_BLOCK_STAGE_PIPELINE_H
 
-#include "decode/parsed_block.h"
-#include "decode/block_state.h"
+#include "decode/block_stage.h"
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
-/// A stage receives one block and may emit zero (suppress), one (forward or replace),
-/// or many (expand) blocks to its downstream sink.
-/// Stages compose by being each other's downstream. On a non-`kContinue`
-/// downstream result a stage must stop emitting and return that result.
-class BlockStage
+class BlockStagePipeline
 {
   public:
-    virtual ~BlockStage() = default;
+    void AddStage(std::unique_ptr<BlockStage> stage);
 
-    void SetDownstream(BlockStage* downstream) { downstream_ = downstream; }
+    // Run one parsed block through the stage chain into the dispatch sink.
+    ProcessBlockState ProcessBlock(ParsedBlock& block);
 
-    /// Default implementation: forward. Overrides may emit 0..N blocks.
-    virtual ProcessBlockState Emit(ParsedBlock& block)
-    {
-        return downstream_ ? downstream_->Emit(block) : ProcessBlockState::kContinue;
-    }
+    // Drain buffering stages, upstream first, into the dispatch sink.
+    ProcessBlockState Flush();
 
-    /// Called at frame boundary / end of stream so buffering stages can drain.
-    virtual ProcessBlockState Flush() { return ProcessBlockState::kContinue; }
-
-  protected:
-    BlockStage* downstream_{ nullptr };
+  private:
+    std::vector<std::unique_ptr<BlockStage>> stages_;
 };
 
 GFXRECON_END_NAMESPACE(decode)
 GFXRECON_END_NAMESPACE(gfxrecon)
 
-#endif // GFXRECON_DECODE_BLOCK_STAGE_H
+#endif // GFXRECON_DECODE_BLOCK_STAGE_PIPELINE_H
