@@ -80,10 +80,12 @@ void PreloadFileProcessor::ReplayAndClearStutterFrame()
 {
     // This is really part of the non-preloaded previous (first) frame,
     // so immediately replay it to complete that frame
-    DispatchVisitor dispatch_visitor(*this, decoders_, annotation_handler_);
+    auto& dispatch_visitor = GetDispatchVisitor();
+    dispatch_visitor.ResetReplayResult();
+
     preload_batch_iterator_.Rewind();
     BlockIterator begin(&preload_batch_iterator_);
-    ReplayOneFrame(dispatch_visitor, begin, BlockIterator());
+    ReplayOneFrame(begin, BlockIterator());
 
     // Don't need/want to NotifyIndexDequeued here as since:
     // * this is a frame boundary (not EOF)
@@ -298,8 +300,10 @@ bool PreloadFileProcessor::ProcessNextFrame()
         return FileProcessor::ProcessNextFrame();
     }
 
-    DispatchVisitor dispatch_visitor(*this, decoders_, annotation_handler_);
-    preload_block_iterator_           = ReplayOneFrame(dispatch_visitor, preload_block_iterator_, BlockIterator());
+    auto& dispatch_visitor = GetDispatchVisitor();
+    dispatch_visitor.ResetReplayResult();
+
+    preload_block_iterator_           = ReplayOneFrame(preload_block_iterator_, BlockIterator());
     const ProcessBlocksResult& result = dispatch_visitor.GetReplayResult();
     HandleReplayResult(result, preload_block_iterator_);
 

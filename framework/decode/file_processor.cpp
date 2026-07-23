@@ -49,6 +49,15 @@ FileProcessor::~FileProcessor()
     DecodeAllocator::DestroyInstance();
 }
 
+FileProcessor::DispatchVisitor& FileProcessor::GetDispatchVisitor()
+{
+    if (dispatch_visitor_ == nullptr)
+    {
+        dispatch_visitor_ = std::make_unique<DispatchVisitor>(*this, decoders_, annotation_handler_);
+    }
+    return *dispatch_visitor_;
+}
+
 void FileProcessor::WaitDecodersIdle()
 {
     for (auto decoder : decoders_)
@@ -139,8 +148,10 @@ bool FileProcessor::ProcessNextFrameAsync()
     // Note that this call may block on empty queue, but the async
     // queue loader should always close the queue on end processing or error
     // NOTE: If the dispatch visitor is reused from frame to frame, then should be Reset().
-    DispatchVisitor dispatch_visitor(*this, decoders_, annotation_handler_);
-    async_block_iterator_ = ReplayOneFrame(dispatch_visitor, async_block_iterator_, BlockIterator());
+    auto& dispatch_visitor = GetDispatchVisitor();
+    dispatch_visitor.ResetReplayResult();
+
+    async_block_iterator_ = ReplayOneFrame(async_block_iterator_, BlockIterator());
 
     const ProcessBlocksResult& result = dispatch_visitor.GetReplayResult();
     HandleReplayResult(result, async_block_iterator_);
@@ -160,7 +171,9 @@ bool FileProcessor::ProcessNextFrameSync()
     GFXRECON_ASSERT(block_parser_->GetOperationMode() == BlockParser::OperationMode::kImmediate);
     GFXRECON_ASSERT(block_parser_->GetDecompressionPolicy() == BlockParser::DecompressionPolicy::kAlways);
 
-    DispatchVisitor  dispatch_visitor(*this, decoders_, annotation_handler_);
+    auto& dispatch_visitor = GetDispatchVisitor();
+    dispatch_visitor.ResetReplayResult();
+
     file_processor::SynchronousProcessPolicy process_policy{ *this, dispatch_visitor };
 
     // This is immediate mode, process and dispatch frame numbers are matched.
@@ -446,10 +459,10 @@ void FileProcessor::HandleReplayResult(const ProcessBlocksResult& result, const 
     }
 }
 
-file_processor::BlockIterator
-FileProcessor::ReplayOneFrame(DispatchVisitor& dispatch_visitor, BlockIterator begin, BlockIterator end)
+file_processor::BlockIterator FileProcessor::ReplayOneFrame(BlockIterator begin, BlockIterator end)
 {
     GFXRECON_ASSERT(begin != end);
+    DispatchVisitor& dispatch_visitor = GetDispatchVisitor();
     BlockParser& block_parser = GetBlockParser();
 
     ProcessBlockState             state = ProcessBlockState::kContinue;

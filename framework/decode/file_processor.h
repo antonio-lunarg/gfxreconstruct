@@ -182,6 +182,8 @@ class FileProcessor
     void ProcessStateEndMarkerFrameState(const StateEndMarkerArgs& state_end);
     void ProcessAnnotation(const AnnotationArgs& annotation);
 
+    DispatchVisitor& GetDispatchVisitor();
+
   protected:
     using BlockProcessor = std::function<bool()>;
 
@@ -241,7 +243,7 @@ class FileProcessor
     // Owns the current async batch; only accessed by the main thread on operator++
     BlockIterator async_block_iterator_;
 
-    BlockIterator ReplayOneFrame(DispatchVisitor& dispatch_visitor, BlockIterator begin, BlockIterator end);
+    BlockIterator ReplayOneFrame(BlockIterator begin, BlockIterator end);
     void          HandleReplayResult(const ProcessBlocksResult& result, const file_processor::BlockIterator& iterator);
 
     bool         IsFileValid() const;
@@ -367,6 +369,8 @@ class FileProcessor
     std::unique_ptr<AsyncProcessor> async_processor_{};
     FrameRange                      preload_frame_range_{ 0, 0 };
     FrameNumber                     quit_before_frame_{ 0 };
+
+    std::unique_ptr<DispatchVisitor> dispatch_visitor_{ nullptr };
 };
 
 extern template ProcessBlockState
