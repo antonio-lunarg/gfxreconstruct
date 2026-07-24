@@ -31,7 +31,6 @@
 #include "decode/api_payload.h"
 #include "decode/block_parser.h"
 #include "decode/block_stage_pipeline.h"
-#include "decode/block_state.h"
 #include "decode/file_processor_types.h"
 #include "util/clock_cache.h"
 #include "util/compressor.h"
@@ -72,7 +71,7 @@ class FileProcessor
     using FrameNumber         = file_processor::FrameNumber;
     using FrameCount          = file_processor::FrameCount;
     using FrameRange          = file_processor::FrameRange;
-    using ProcessBlocksResult = file_processor::ProcessBlocksResult;
+    using ProcessBlocksResult = ProcessBlocksResult;
     using ProcessVisitor      = file_processor::ProcessVisitor;
 
     constexpr static FrameNumber kFirstFrame = 0;

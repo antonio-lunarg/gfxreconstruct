@@ -46,7 +46,7 @@ target_sources(gfxrecon_decode
                     ${CMAKE_CURRENT_LIST_DIR}/block_stage.h
                     ${CMAKE_CURRENT_LIST_DIR}/block_stage_pipeline.h
                     ${CMAKE_CURRENT_LIST_DIR}/block_stage_pipeline.cpp
-                    ${CMAKE_CURRENT_LIST_DIR}/block_state.h
+                    ${CMAKE_CURRENT_LIST_DIR}/block_types.h
                     ${CMAKE_CURRENT_LIST_DIR}/common_consumer_base.h
                     ${CMAKE_CURRENT_LIST_DIR}/common_handle_mapping_util.h
                     ${CMAKE_CURRENT_LIST_DIR}/common_object_info_table.h
@@ -291,6 +291,8 @@ target_sources(gfxrecon_decode
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_offscreen_swapchain.h
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_offscreen_swapchain.cpp
                     ${CMAKE_CURRENT_LIST_DIR}/window.h
+                    ${CMAKE_CURRENT_LIST_DIR}/stage/json_output_stage.h
+                    ${CMAKE_CURRENT_LIST_DIR}/stage/json_output_stage.cpp
                     $<$<BOOL:${OPENXR_SUPPORT_ENABLED}>:${GFXRECON_SOURCE_DIR}/framework/generated/generated_openxr_consumer.h>
                     $<$<BOOL:${OPENXR_SUPPORT_ENABLED}>:${GFXRECON_SOURCE_DIR}/framework/generated/generated_openxr_decoder.h>
                     $<$<BOOL:${OPENXR_SUPPORT_ENABLED}>:${GFXRECON_SOURCE_DIR}/framework/generated/generated_openxr_decoder.cpp>

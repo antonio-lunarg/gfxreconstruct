@@ -26,7 +26,6 @@
 #include "format/format.h"
 #include "decode/block_batch.h"
 #include "decode/block_parser.h"
-#include "decode/block_state.h"
 #include "util/defines.h"
 #include "util/logging.h"
 #include "util/thread_safe_queue.h"
@@ -51,18 +50,6 @@ GFXRECON_BEGIN_NAMESPACE(file_processor)
 // Stores block processing state at return of ProcessBlocks in async or preload mode
 using FrameCount  = uint64_t;
 using FrameNumber = uint64_t;
-struct ProcessBlocksResult
-{
-    // NOTE: This is the frame_number of the *next* frame
-    // Snapshot of process_frame_number_ at return.
-    uint64_t frame_number{ 0U };
-
-    // Snapshot of the process_error_state_ at return.
-    BlockIOError error{ BlockIOError::kErrorNone };
-
-    // ProcessBlocks return value.
-    ProcessBlockState state{ ProcessBlockState::kContinue };
-};
 
 // Range of frame numbers with half open [begin(), end()) semantics.
 struct FrameRange

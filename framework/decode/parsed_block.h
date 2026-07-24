@@ -24,6 +24,7 @@
 #define GFXRECON_DECODE_PARSED_BLOCK_H
 
 #include "decode/api_payload.h"
+#include "decode/block_types.h"
 #include "format/format_util.h"
 #include "util/span.h"
 
@@ -135,7 +136,7 @@ class ParsedBlock
     {}
 
     // This is a valid ready block, without block_data_ or a valid index.  Visitors must be aware.
-    ParsedBlock(file_processor::ProcessBlocksResult* result) :
+    ParsedBlock(ProcessBlocksResult* result) :
         block_index_(kInvalidIndex), block_data_(nullptr), dispatch_args_(result), state_(BlockState::kReady)
     {}
 

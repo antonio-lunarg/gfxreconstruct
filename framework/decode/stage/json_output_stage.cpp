@@ -20,40 +20,37 @@
 ** DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef GFXRECON_DECODE_BLOCK_STAGE_H
-#define GFXRECON_DECODE_BLOCK_STAGE_H
-
-#include "decode/parsed_block.h"
-#include "decode/block_types.h"
+#include "decode/stage/json_output_stage.h"
 
 GFXRECON_BEGIN_NAMESPACE(gfxrecon)
 GFXRECON_BEGIN_NAMESPACE(decode)
 
-/// A stage receives one block and may emit zero (suppress), one (forward or replace),
-/// or many (expand) blocks to its downstream sink.
-/// Stages compose by being each other's downstream. On a non-`kContinue`
-/// downstream result a stage must stop emitting and return that result.
-class BlockStage
+constexpr size_t kBufferSize = 64 * 1024; // 64 KB
+
+JsonOutputStage::JsonOutputStage(const std::string& output_path,
+                                 const std::string& input_filename,
+                                 const std::string& gfxr_version) :
+    out_stream_(output_path, kBufferSize),
+    writer_(gfxr_version, input_filename), visitor_{ decoder_, writer_, 0 }
 {
-  public:
-    virtual ~BlockStage() = default;
+    decoder_.AddConsumer(&consumer_);
+    consumer_.Initialize(&writer_);
+    writer_.StartStream(&out_stream_);
+}
 
-    void SetDownstream(BlockStage* downstream) { downstream_ = downstream; }
+JsonOutputStage::~JsonOutputStage()
+{
+    writer_.EndStream();
+}
 
-    /// Default implementation: forward. Overrides may emit 0..N blocks.
-    virtual ProcessBlockState Emit(ParsedBlock& block)
-    {
-        return downstream_ ? downstream_->Emit(block) : ProcessBlockState::kContinue;
-    }
+ProcessBlockState JsonOutputStage::Emit(ParsedBlock& block)
+{
+    // In order to do something with the block, we can create a visitor.
+    visitor_.block_index = block.GetBlockIndex();
+    std::visit(visitor_, block.GetArgs());
 
-    /// Called at frame boundary / end of stream so buffering stages can drain.
-    virtual ProcessBlockState Flush() { return ProcessBlockState::kContinue; }
-
-  protected:
-    BlockStage* downstream_{ nullptr };
-};
+    return BlockStage::Emit(block);
+}
 
 GFXRECON_END_NAMESPACE(decode)
 GFXRECON_END_NAMESPACE(gfxrecon)
-
-#endif // GFXRECON_DECODE_BLOCK_STAGE_H

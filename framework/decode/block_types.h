@@ -20,8 +20,8 @@
 ** DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef GFXRECON_DECODE_BLOCK_STATE_H
-#define GFXRECON_DECODE_BLOCK_STATE_H
+#ifndef GFXRECON_DECODE_BLOCK_TYPES_H
+#define GFXRECON_DECODE_BLOCK_TYPES_H
 
 #include "util/defines.h"
 
@@ -45,7 +45,46 @@ enum class ProcessBlockState : int32_t
     kError = -2,
 };
 
+enum BlockIOError : int32_t
+{
+    kEndOfFile                         = 1, // when block reading is EOF at a block boundary
+    kErrorNone                         = 0,
+    kErrorInvalidFileDescriptor        = -1,
+    kErrorOpeningFile                  = -2,
+    kErrorReadingFile                  = -3, // ferror() return true at start of file
+    kErrorReadingFileHeader            = -4,
+    kErrorReadingBlockHeader           = -5,
+    kErrorReadingCompressedBlockHeader = -6,
+    kErrorReadingBlockData             = -7,
+    kErrorReadingCompressedBlockData   = -8,
+    kErrorInvalidFourCC                = -9,
+    kErrorUnsupportedCompressionType   = -10,
+    kErrorSeekingFile                  = -11, // Additional error types from FileTransformer
+    kErrorWritingFile                  = -12,
+    kErrorWritingFileHeader            = -13,
+    kErrorWritingBlockHeader           = -14,
+    kErrorWritingCompressedBlockHeader = -15,
+    kErrorWritingBlockData             = -16,
+    kErrorWritingCompressedBlockData   = -17,
+    kErrorCopyingBlockData             = -18,
+    kErrorUnsupportedBlockType         = -19
+
+};
+
+struct ProcessBlocksResult
+{
+    // NOTE: This is the frame_number of the *next* frame
+    // Snapshot of process_frame_number_ at return.
+    uint64_t frame_number{ 0U };
+
+    // Snapshot of the process_error_state_ at return.
+    BlockIOError error{ BlockIOError::kErrorNone };
+
+    // ProcessBlocks return value.
+    ProcessBlockState state{ ProcessBlockState::kContinue };
+};
+
 GFXRECON_END_NAMESPACE(decode)
 GFXRECON_END_NAMESPACE(gfxrecon)
 
-#endif // GFXRECON_DECODE_BLOCK_STATE_H
+#endif // GFXRECON_DECODE_BLOCK_TYPES_H

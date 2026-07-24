@@ -42,32 +42,6 @@ class BlockBuffer;
 using FileInputStream    = util::FStreamFileInputStream;
 using FileInputStreamPtr = std::shared_ptr<FileInputStream>;
 
-enum BlockIOError : int32_t
-{
-    kEndOfFile                         = 1, // when block reading is EOF at a block boundary
-    kErrorNone                         = 0,
-    kErrorInvalidFileDescriptor        = -1,
-    kErrorOpeningFile                  = -2,
-    kErrorReadingFile                  = -3, // ferror() return true at start of file
-    kErrorReadingFileHeader            = -4,
-    kErrorReadingBlockHeader           = -5,
-    kErrorReadingCompressedBlockHeader = -6,
-    kErrorReadingBlockData             = -7,
-    kErrorReadingCompressedBlockData   = -8,
-    kErrorInvalidFourCC                = -9,
-    kErrorUnsupportedCompressionType   = -10,
-    kErrorSeekingFile                  = -11, // Additional error types from FileTransformer
-    kErrorWritingFile                  = -12,
-    kErrorWritingFileHeader            = -13,
-    kErrorWritingBlockHeader           = -14,
-    kErrorWritingCompressedBlockHeader = -15,
-    kErrorWritingBlockData             = -16,
-    kErrorWritingCompressedBlockData   = -17,
-    kErrorCopyingBlockData             = -18,
-    kErrorUnsupportedBlockType         = -19
-
-};
-
 class BlockParser
 {
   public:
@@ -166,8 +140,8 @@ class BlockParser
     template <typename... Args>
     ParsedBlock& EmplaceResultsBlock(Args&&... args)
     {
-        file_processor::ProcessBlocksResult* results_ptr =
-            Emplace<file_processor::ProcessBlocksResult>(std::forward<Args>(args)...);
+        ProcessBlocksResult* results_ptr =
+            Emplace<ProcessBlocksResult>(std::forward<Args>(args)...);
         return EmplaceBlock(ParsedBlock::BlockState::kReady, block_index_, nullptr, results_ptr);
     }
 
