@@ -24,10 +24,25 @@
 
 #include "decode/vulkan_consumer_stage_base.h"
 
+using namespace gfxrecon::decode;
+
+class ForwardingStage : public VulkanConsumerStageBase
+{
+  public:
+    void Process_vkCmdDraw(const ApiCallInfo& call_info, args::CmdDraw& args) override { Emit(call_info, args); }
+
+    template <typename ArgsT>
+    void Emit(const ApiCallInfo& call_info, ArgsT& args)
+    {
+        for (auto next : GetNext())
+        {
+            next->Process(call_info, args);
+        }
+    }
+};
+
 TEST_CASE("simple consumer stage test", "[stage]")
 {
-    using namespace gfxrecon::decode;
-
     class RecordingConsumer : public VulkanConsumer
     {
       public:
@@ -132,5 +147,18 @@ TEST_CASE("simple consumer stage test", "[stage]")
         expand_stage.Process_vkCmdDraw(ApiCallInfo(), cmd_draw);
 
         REQUIRE(recording_consumer.calls.size() == 2);
+    }
+
+    SECTION("Template forwarding")
+    {
+        auto stage              = ForwardingStage();
+        auto recording_consumer = RecordingConsumer();
+        stage.AddNext(&recording_consumer);
+
+        auto cmd_draw = args::CmdDraw();
+
+        stage.Process_vkCmdDraw(ApiCallInfo(), cmd_draw);
+
+        REQUIRE(recording_consumer.calls.size() == 1);
     }
 }

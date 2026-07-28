@@ -358,7 +358,8 @@ def make_gen_opts(args):
             prefix_text=prefix_strings + vk_prefix_strings,
             protect_file=True,
             protect_feature=False,
-            extra_headers=extra_headers
+            extra_headers=extra_headers,
+            generate_process_overloads=True,
         )
     ]
 

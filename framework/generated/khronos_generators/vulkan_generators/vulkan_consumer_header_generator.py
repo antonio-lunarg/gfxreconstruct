@@ -46,7 +46,8 @@ class VulkanConsumerHeaderGeneratorOptions(VulkanBaseGeneratorOptions):
         prefix_text='',
         protect_file=False,
         protect_feature=True,
-        extra_headers=[]
+        extra_headers=[],
+        generate_process_overloads=False,
     ):
         VulkanBaseGeneratorOptions.__init__(
             self,
@@ -63,6 +64,7 @@ class VulkanConsumerHeaderGeneratorOptions(VulkanBaseGeneratorOptions):
         self.base_class_header = base_class_header
         self.is_override = is_override
         self.constructor_args = constructor_args
+        self.generate_process_overloads = generate_process_overloads
 
         self.begin_end_file_data.specific_headers.extend((
             'decode/{}'.format(self.base_class_header),
@@ -101,3 +103,43 @@ class VulkanConsumerHeaderGenerator(VulkanBaseGenerator, KhronosConsumerHeaderGe
 
         # Finish processing in superclass
         VulkanBaseGenerator.endFile(self)
+
+
+    def write_class_contents(self):
+        """Method may be overridden."""
+        KhronosConsumerHeaderGenerator.write_class_contents(self)
+
+        if self.genOpts.generate_process_overloads:
+            self.newline()
+            self.write_process_overloads()
+
+    def write_process_overloads(self):
+        """Write the Process(...) function overloads for each Vulkan API call."""
+        for cmd in self.get_all_filtered_cmd_names():
+            # (return_type, ?, values)
+            info = self.all_cmd_params[cmd]
+            return_type = info[0]
+            values = info[2]
+
+            # No overload needed if there are no parameters.
+            if values is None or len(values) == 0:
+                continue
+
+            args_struct_name = self.make_args_struct_name(cmd, namespace='args::')
+
+            decl = self.indent(
+                f"void Process(const ApiCallInfo& call_info, {args_struct_name}& args) {{\n",
+                self.INDENT_SIZE,
+            )
+
+            decl += self.indent(
+                f"    Process_{cmd}(call_info, args);\n",
+                self.INDENT_SIZE,
+            )
+
+            decl += self.indent(
+                "}\n",
+                self.INDENT_SIZE,
+            )
+
+            write(decl, file=self.outFile)
