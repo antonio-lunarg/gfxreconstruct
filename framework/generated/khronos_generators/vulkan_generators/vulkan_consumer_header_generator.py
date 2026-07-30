@@ -107,18 +107,29 @@ class VulkanConsumerHeaderGenerator(VulkanBaseGenerator, KhronosConsumerHeaderGe
 
     def write_class_contents(self):
         """Method may be overridden."""
+        self.write_process_reimport()
+
         KhronosConsumerHeaderGenerator.write_class_contents(self)
 
         if self.genOpts.generate_process_overloads:
             self.newline()
             self.write_process_overloads()
 
+    def write_process_reimport(self):
+        """Reimport `Process` to make sure name lookup works for hand-declared Process_vk* functions."""
+        self.newline()
+        decl = self.indent(
+            "// Reimport `Process` to make sure name lookup works for hand-declared Process_vk* functions.\n",
+            self.INDENT_SIZE,
+        )
+        decl += self.indent("using VulkanConsumerBase::Process;", self.INDENT_SIZE)
+        write(decl, file=self.outFile)
+
     def write_process_overloads(self):
         """Write the Process(...) function overloads for each Vulkan API call."""
         for cmd in self.get_all_filtered_cmd_names():
             # (return_type, ?, values)
             info = self.all_cmd_params[cmd]
-            return_type = info[0]
             values = info[2]
 
             # No overload needed if there are no parameters.

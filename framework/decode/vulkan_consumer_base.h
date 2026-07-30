@@ -59,21 +59,46 @@ class VulkanConsumerBase : public CommonConsumerBase
                                                            args::UpdateDescriptorSetWithTemplate& args)
     {}
 
+    void Process(const ApiCallInfo& call_info, args::UpdateDescriptorSetWithTemplate& args)
+    {
+        Process_vkUpdateDescriptorSetWithTemplate(call_info, args);
+    }
+
     virtual void Process_vkCmdPushDescriptorSetWithTemplateKHR(const ApiCallInfo&                         call_info,
                                                                args::CmdPushDescriptorSetWithTemplateKHR& args)
     {}
+
+    void Process(const ApiCallInfo& call_info, args::CmdPushDescriptorSetWithTemplateKHR& args)
+    {
+        Process_vkCmdPushDescriptorSetWithTemplateKHR(call_info, args);
+    }
 
     virtual void Process_vkUpdateDescriptorSetWithTemplateKHR(const ApiCallInfo&                        call_info,
                                                               args::UpdateDescriptorSetWithTemplateKHR& args)
     {}
 
+    void Process(const ApiCallInfo& call_info, args::UpdateDescriptorSetWithTemplateKHR& args)
+    {
+        Process_vkUpdateDescriptorSetWithTemplateKHR(call_info, args);
+    }
+
     virtual void Process_vkCmdPushDescriptorSetWithTemplate2KHR(const ApiCallInfo&                          call_info,
                                                                 args::CmdPushDescriptorSetWithTemplate2KHR& args)
     {}
 
+    void Process(const ApiCallInfo& call_info, args::CmdPushDescriptorSetWithTemplate2KHR& args)
+    {
+        Process_vkCmdPushDescriptorSetWithTemplate2KHR(call_info, args);
+    }
+
     virtual void Process_vkCreateRayTracingPipelinesKHR(const ApiCallInfo&                  call_info,
                                                         args::CreateRayTracingPipelinesKHR& args)
     {}
+
+    void Process(const ApiCallInfo& call_info, args::CreateRayTracingPipelinesKHR& args)
+    {
+        Process_vkCreateRayTracingPipelinesKHR(call_info, args);
+    }
 
     virtual void ProcessSetTlasToBlasRelationCommand(format::HandleId tlas, const std::vector<format::HandleId>& blases)
     {}

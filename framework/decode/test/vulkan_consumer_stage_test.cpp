@@ -161,4 +161,17 @@ TEST_CASE("simple consumer stage test", "[stage]")
 
         REQUIRE(recording_consumer.calls.size() == 1);
     }
+
+    SECTION("Forward through Emit covers hand-declared commands")
+    {
+        class TemplateForwardingStage : public ForwardingStage
+        {
+          public:
+            void Process_vkUpdateDescriptorSetWithTemplate(const ApiCallInfo&                     call_info,
+                                                           args::UpdateDescriptorSetWithTemplate& args) override
+            {
+                Emit(call_info, args);
+            }
+        };
+    }
 }

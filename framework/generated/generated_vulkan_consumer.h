@@ -53,6 +53,9 @@ class VulkanConsumer : public VulkanConsumerBase
 
     virtual ~VulkanConsumer() override { }
 
+    // Reimport `Process` to make sure name lookup works for hand-declared Process_vk* functions.
+    using VulkanConsumerBase::Process;
+
     virtual void Process_vkCreateInstance(
         const ApiCallInfo&                          call_info,
         args::CreateInstance&                       args) {}
