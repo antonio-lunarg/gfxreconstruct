@@ -23,23 +23,9 @@
 #include <catch2/catch.hpp>
 
 #include "decode/vulkan_consumer_stage_base.h"
+#include "generated/generated_vulkan_consumer_stage.h"
 
 using namespace gfxrecon::decode;
-
-class ForwardingStage : public VulkanConsumerStageBase
-{
-  public:
-    void Process_vkCmdDraw(const ApiCallInfo& call_info, args::CmdDraw& args) override { Emit(call_info, args); }
-
-    template <typename ArgsT>
-    void Emit(const ApiCallInfo& call_info, ArgsT& args)
-    {
-        for (auto next : GetNext())
-        {
-            next->Process(call_info, args);
-        }
-    }
-};
 
 TEST_CASE("simple consumer stage test", "[stage]")
 {
@@ -151,7 +137,7 @@ TEST_CASE("simple consumer stage test", "[stage]")
 
     SECTION("Template forwarding")
     {
-        auto stage              = ForwardingStage();
+        auto stage              = VulkanConsumerStage();
         auto recording_consumer = RecordingConsumer();
         stage.AddNext(&recording_consumer);
 
@@ -164,7 +150,7 @@ TEST_CASE("simple consumer stage test", "[stage]")
 
     SECTION("Forward through Emit covers hand-declared commands")
     {
-        class TemplateForwardingStage : public ForwardingStage
+        class TemplateForwardingStage : public VulkanConsumerStage
         {
           public:
             void Process_vkUpdateDescriptorSetWithTemplate(const ApiCallInfo&                     call_info,

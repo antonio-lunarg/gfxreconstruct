@@ -48,6 +48,7 @@ class VulkanConsumerHeaderGeneratorOptions(VulkanBaseGeneratorOptions):
         protect_feature=True,
         extra_headers=[],
         generate_process_overloads=False,
+        generate_forwarding_body=False,
     ):
         VulkanBaseGeneratorOptions.__init__(
             self,
@@ -65,6 +66,7 @@ class VulkanConsumerHeaderGeneratorOptions(VulkanBaseGeneratorOptions):
         self.is_override = is_override
         self.constructor_args = constructor_args
         self.generate_process_overloads = generate_process_overloads
+        self.generate_forwarding_body = generate_forwarding_body
 
         self.begin_end_file_data.specific_headers.extend((
             'decode/{}'.format(self.base_class_header),
@@ -109,7 +111,10 @@ class VulkanConsumerHeaderGenerator(VulkanBaseGenerator, KhronosConsumerHeaderGe
         """Method may be overridden."""
         self.write_process_reimport()
 
-        KhronosConsumerHeaderGenerator.write_class_contents(self)
+        if self.genOpts.generate_forwarding_body:
+            self.write_forwarding_body()
+        else:
+            KhronosConsumerHeaderGenerator.write_class_contents(self)
 
         if self.genOpts.generate_process_overloads:
             self.newline()
@@ -124,6 +129,33 @@ class VulkanConsumerHeaderGenerator(VulkanBaseGenerator, KhronosConsumerHeaderGe
         )
         decl += self.indent("using VulkanConsumerBase::Process;", self.INDENT_SIZE)
         write(decl, file=self.outFile)
+
+    def write_forwarding_body(self):
+        """Forward Process_vk* args for each Vulkan API call."""
+        assert(self.genOpts.is_override)
+
+        for cmd in self.get_all_filtered_cmd_names():
+            if self.skip_generating_command(cmd):
+                continue
+
+            info = self.all_cmd_params[cmd]
+            return_type = info[0]
+            values = info[2]
+
+            decl = self.make_consumer_func_decl(
+                return_type, 'Process_' + cmd, values
+            )
+
+            cmddef = '\n'
+            cmddef += self.indent(
+                decl + ' override\n', self.INDENT_SIZE
+            )
+            cmddef += self.indent(
+                '{\n    Emit(call_info, args);\n}\n',
+                self.INDENT_SIZE
+            )
+
+            write(cmddef, file=self.outFile)
 
     def write_process_overloads(self):
         """Write the Process(...) function overloads for each Vulkan API call."""

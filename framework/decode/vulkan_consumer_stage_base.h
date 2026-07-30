@@ -33,7 +33,18 @@ GFXRECON_BEGIN_NAMESPACE(decode)
 class VulkanConsumerStageBase : public VulkanConsumer
 {
   public:
+    ~VulkanConsumerStageBase() override {}
+
     void AddNext(VulkanConsumer* consumer) { next_.push_back(consumer); }
+
+    template <typename ArgsT>
+    void Emit(const ApiCallInfo& call_info, ArgsT& args)
+    {
+        for (auto next : GetNext())
+        {
+            next->Process(call_info, args);
+        }
+    }
 
   protected:
     std::vector<VulkanConsumer*>& GetNext() { return next_; }

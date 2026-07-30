@@ -363,6 +363,27 @@ def make_gen_opts(args):
         )
     ]
 
+    # Stage generation
+    gen_opts['generated_vulkan_consumer_stage.h'] = [
+        VulkanConsumerHeaderGenerator,
+        VulkanConsumerHeaderGeneratorOptions(
+            class_name='VulkanConsumerStage',
+            base_class_header='vulkan_consumer_stage_base.h',
+            is_override=True,
+            filename='generated_vulkan_consumer_stage.h',
+            directory=directory,
+            blacklists=blacklists,
+            platform_types=platform_types,
+            prefix_text=prefix_strings + vk_prefix_strings,
+            protect_file=True,
+            protect_feature=False,
+            extra_headers=extra_headers,
+            generate_process_overloads=True,
+            generate_forwarding_body=True,
+        )
+    ]
+
+
     gen_opts['generated_vulkan_cpp_consumer.h'] = [
         VulkanConsumerHeaderGenerator,
         VulkanConsumerHeaderGeneratorOptions(
