@@ -224,6 +224,7 @@ target_sources(gfxrecon_decode
                     ${CMAKE_CURRENT_LIST_DIR}/marker_consumer_base.h
                     ${CMAKE_CURRENT_LIST_DIR}/marker_json_consumer.h
                     ${CMAKE_CURRENT_LIST_DIR}/metadata_consumer_base.h
+                    ${CMAKE_CURRENT_LIST_DIR}/metadata_args.h
                     ${CMAKE_CURRENT_LIST_DIR}/metadata_json_consumer.h
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_enum_util.h
                     ${CMAKE_CURRENT_LIST_DIR}/vulkan_handle_mapping_util.h
