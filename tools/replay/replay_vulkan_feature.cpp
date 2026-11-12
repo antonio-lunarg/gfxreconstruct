@@ -804,12 +804,18 @@ void ReplayVulkanFeature::RegisterDecodeComponents(graphics::FpsInfo* fps_info)
             auto* consumer = dynamic_cast<decode::VulkanReplayConsumerBase*>(replay_consumer_.get());
             GFXRECON_ASSERT(consumer != nullptr);
             consumer->SetDecoder(decoder.get());
-            RegisterConsumerAndDecoder(fps_info, std::move(decoder));
+            decoder_ = std::move(decoder);
         }
-        else
-        {
-            RegisterConsumerAndDecoder(fps_info);
-        }
+
+        // The decoder talks to the stage, and the stage talks to the replay consumer. The feature
+        // keeps replay_consumer_ for the calls that only a replay consumer accepts, such as
+        // SetFpsInfo() and SetupForRecapture().
+        stage_ = std::make_unique<decode::VulkanConsumerStage>();
+        stage_->AddNext(replay_consumer_.get());
+
+        replay_consumer_->SetFpsInfo(fps_info);
+        decoder_->AddConsumer(stage_.get());
+        file_processor_->AddDecoder(decoder_.get());
 
         application_->SetPrintBlockInfoFlag(
             replay_options_.enable_print_block_info, replay_options_.block_index_from, replay_options_.block_index_to);
@@ -863,6 +869,7 @@ void ReplayVulkanFeature::CompletePreProcessingPass()
 
 void ReplayVulkanFeature::Destroy()
 {
+    stage_.reset();
     replay_consumer_.reset();
 
 #if defined(GFXRECON_ENABLE_VULKAN)
